@@ -52,36 +52,34 @@ def create_posts(new_post: Post):
     cursor.execute("""INSERT INTO posts (title,description,published) VALUES (%s,%s,%s) RETURNING *""",
                    (new_post.title,new_post.description,new_post.published))
     new_post = cursor.fetchone()
+    conn.commit()
     return {
         "message": "Successfully created post!",
         "data": new_post,    
     }
 
 @app.get("/posts/{id}")
-def get_post(id: int,response: Response):
-    post = find_post(id)
+def get_post(id: int):
+    cursor.execute("""SELECT * FROM posts WHERE id = %s""", (str(id),))
+    post = cursor.fetchone()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id: {id} was not found")
-        # response.status_code = status.HTTP_403_FORBIDDEN
-        # return {"message": f"post with id: {id} was not found"}
-    return {"post_detail": post}
+    return {"data": post}
 
 @app.delete("/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
-    post = find_post(id)
-    index = find_index_post(id)
+    cursor.execute("""DELETE FROM posts WHERE id = %s RETURNING *""", (str(id),))
+    post = cursor.fetchone()
+    conn.commit()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id: {id} does not exist")
-    my_posts.pop(index)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @app.put("/posts/{id}",status_code=status.HTTP_202_ACCEPTED)
 def update_post(id: int, updated_post: Post):
-    post = find_post(id)
-    index = find_index_post(id)
+    cursor.execute("""UPDATE posts SET title=%s, description=%s, published=%s WHERE id = %s RETURNING *""",(updated_post.title,updated_post.description,updated_post.published,id))
+    post = cursor.fetchone()
+    conn.commit()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id: {id} does not exist")
-    post_dict = updated_post.dict()
-    post_dict['id'] = id
-    my_posts[index] = post_dict
-    return {"message": "Successfully updated post!","data": updated_post}
+    return {"message": "Successfully updated post!","data": post}
