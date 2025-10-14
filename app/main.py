@@ -1,5 +1,4 @@
 from fastapi import FastAPI,Response,status,HTTPException,Depends
-from pydantic import BaseModel
 from typing import Optional
 from random import randrange
 import psycopg2
@@ -8,6 +7,7 @@ import time
 from . import models
 from .database import engine,get_db
 from sqlalchemy.orm import Session
+from . import schemas
 
 
 app = FastAPI()
@@ -16,10 +16,7 @@ models.Base.metadata.create_all(bind=engine)
 
 
 
-class Post(BaseModel):
-    title: str
-    description: str
-    published: bool = True
+
 
 while True:
     try:
@@ -54,7 +51,7 @@ def get_posts(db: Session = Depends(get_db)):
     return {"data": posts} 
 
 @app.post("/posts",status_code=status.HTTP_201_CREATED)
-def create_posts(new_post: Post, db: Session = Depends(get_db)):
+def create_posts(new_post: schemas.CreatePost, db: Session = Depends(get_db)):
     new_post = models.Post(**new_post.dict())
     db.add(new_post)
     db.commit()
@@ -83,7 +80,7 @@ def delete_post(id: int,db: Session = Depends(get_db),):
 
 
 @app.put("/posts/{id}", status_code=status.HTTP_202_ACCEPTED)
-def update_post(id: int, updated_post: Post, db: Session = Depends(get_db)):
+def update_post(id: int, updated_post: schemas.CreatePost, db: Session = Depends(get_db)):
     post_query = db.query(models.Post).filter(models.Post.id == id)
     post = post_query.first()
     
