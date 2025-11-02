@@ -97,3 +97,21 @@ def update_post(id: int, updated_post: schemas.CreatePost, db: Session = Depends
     updated = post_query.first()
 
     return {"message": "Successfully updated post!", "data": updated}
+
+
+
+@app.post("/user",status_code=status.HTTP_201_CREATED)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    new_user = models.User(**user.dict())
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {
+        "message": "Successfully created new user!",
+        "data": new_user,    
+    }
+
+@app.get("/users",status_code=status.HTTP_200_OK)
+def get_users(db: Session = Depends(get_db)):
+    users= db.query(models.User).all()
+    return {"data": users}
