@@ -2,7 +2,7 @@
 from .. import models, schemas
 from fastapi import  Depends, HTTPException, status,Response, APIRouter
 from sqlalchemy.orm import Session
-
+from .. import oauth2
 from ..database import get_db
 
 router = APIRouter(prefix="/posts", tags=["Posts"])  
@@ -13,7 +13,7 @@ def get_posts(db: Session = Depends(get_db)):
     return {"data": posts} 
 
 @router.post("/",status_code=status.HTTP_201_CREATED)
-def create_posts(new_post: schemas.CreatePost, db: Session = Depends(get_db)):
+def create_posts(new_post: schemas.CreatePost, db: Session = Depends(get_db),get_current_user: int = Depends(oauth2.get_current_user)):
     new_post = models.Post(**new_post.dict())
     db.add(new_post)
     db.commit()
@@ -24,14 +24,14 @@ def create_posts(new_post: schemas.CreatePost, db: Session = Depends(get_db)):
     }
 
 @router.get("/{id}")
-def get_post(id: int,db: Session = Depends(get_db)):
+def get_post(id: int,db: Session = Depends(get_db),get_current_user: int = Depends(oauth2.get_current_user)):
     post = db.query(models.Post).filter(models.Post.id == id).first()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id: {id} was not found")
     return {"data": post}
 
 @router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT,)
-def delete_post(id: int,db: Session = Depends(get_db),):
+def delete_post(id: int,db: Session = Depends(get_db),get_current_user: int = Depends(oauth2.get_current_user)):
     post =db.query(models.Post).filter(models.Post.id == id)
 
     if post.first()==None:
@@ -42,7 +42,7 @@ def delete_post(id: int,db: Session = Depends(get_db),):
 
 
 @router.put("/{id}", status_code=status.HTTP_202_ACCEPTED)
-def update_post(id: int, updated_post: schemas.CreatePost, db: Session = Depends(get_db)):
+def update_post(id: int, updated_post: schemas.CreatePost, db: Session = Depends(get_db),get_current_user: int = Depends(oauth2.get_current_user)):
     post_query = db.query(models.Post).filter(models.Post.id == id)
     post = post_query.first()
     
